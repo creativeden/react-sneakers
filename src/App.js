@@ -12,22 +12,28 @@ function App() {
   const [favorites, setFavorites] = React.useState([]);
   const [searchValue, setSearchValue] = React.useState('');
   const [cartOpened, setCartOpened] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
-    axios.get('http://localhost:3001/items').then((res) => {
-      setItems(res.data);
-    });
-    axios.get('http://localhost:3001/cart').then((res) => {
-      setCartItems(res.data);
-    });
-    axios.get('http://localhost:3001/favorites').then((res) => {
-      setFavorites(res.data);
-    });
+    async function fetchData() {
+      const itemsResponse = await axios.get('http://localhost:3001/items');
+      const cartResponse = await axios.get('http://localhost:3001/cart');
+      const favoritesResponse = await axios.get('http://localhost:3001/favorites');
+
+      setIsLoading(false);
+
+      setCartItems(cartResponse.data);
+      setFavorites(favoritesResponse.data);
+      setItems(itemsResponse.data);
+    }
+
+    fetchData();
   }, []);
 
   const onAddToCart = (obj) => {
     try {
       if (cartItems.find((item) => Number(item.id) === Number(obj.id))) {
+        axios.delete(`http://localhost:3001/cart/${obj.id}`);
         setCartItems(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
       } else {
         axios.post('http://localhost:3001/cart', obj);
@@ -74,11 +80,13 @@ function App() {
           element={
             <Home 
               items={items} 
+              cartItems={cartItems} 
               searchValue={searchValue} 
               setSearchValue={setSearchValue} 
               onChangeSearchInput={onChangeSearchInput} 
               onAddToFavorite={onAddToFavorite} 
               onAddToCart={onAddToCart} 
+              isLoading={isLoading}
             />
           }
           exact
