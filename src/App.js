@@ -14,34 +14,42 @@ function App() {
   const [cartOpened, setCartOpened] = React.useState(false);
 
   React.useEffect(() => {
-    axios.get('https://645d1f34250a246ae3182e56.mockapi.io/items').then((res) => {
+    axios.get('http://localhost:3001/items').then((res) => {
       setItems(res.data);
     });
-    // axios.get('https://645d1f34250a246ae3182e56.mockapi.io/cart').then((res) => {
-    //   setCartItems(res.data);
-    // });
-    axios.get('https://645d1f34250a246ae3182e56.mockapi.io/favorites').then((res) => {
+    axios.get('http://localhost:3001/cart').then((res) => {
+      setCartItems(res.data);
+    });
+    axios.get('http://localhost:3001/favorites').then((res) => {
       setFavorites(res.data);
     });
   }, []);
 
   const onAddToCart = (obj) => {
-    axios.post('https://645d1f34250a246ae3182e56.mockapi.io/cart', obj);
-    setCartItems(prev => [...prev, obj]);
+    try {
+      if (cartItems.find((item) => Number(item.id) === Number(obj.id))) {
+        setCartItems(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
+      } else {
+        axios.post('http://localhost:3001/cart', obj);
+        setCartItems(prev => [...prev, obj]);
+      }
+    } catch (error) {
+      console('Не удалось добавить в корзину');
+    }
   }
 
   const onRemoveItem = (id) => {
-    axios.delete(`https://645d1f34250a246ae3182e56.mockapi.io/cart/${id}`);
+    axios.delete(`http://localhost:3001/cart/${id}`);
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   }
 
   const onAddToFavorite = async (obj) => {
     try {
       if (favorites.find((favObj) => favObj.id === obj.id)) {
-        axios.delete(`https://645d1f34250a246ae3182e56.mockapi.io/favorites/${obj.id}`);
+        axios.delete(`http://localhost:3001/favorites/${obj.id}`);
         setFavorites((prev) => prev.filter((item) => item.id !== obj.id));
       } else {
-        const { data } = await axios.post('https://645d1f34250a246ae3182e56.mockapi.io/favorites/', obj)
+        const { data } = await axios.post('http://localhost:3001/favorites/', obj)
         setFavorites((prev) => [...prev, data]);
       }
     } catch (error) {
