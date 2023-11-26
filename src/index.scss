@@ -153,6 +153,10 @@ header {
         transform: translateX(5px);
       }
     }
+    &:disabled {
+      opacity: 0.65;
+      cursor: default;
+    }
   }
 }
 
