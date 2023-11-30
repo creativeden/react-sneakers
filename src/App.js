@@ -7,6 +7,7 @@ import AppContext from './context';
 
 import Home from './pages/Home';
 import Favorites from './pages/Favorites';
+import Orders from './pages/Orders';
 
 function App() {
   const [items, setItems] = React.useState([]);
@@ -18,37 +19,49 @@ function App() {
 
   React.useEffect(() => {
     async function fetchData() {
-      const itemsResponse = await axios.get('http://localhost:3001/items');
-      const cartResponse = await axios.get('http://localhost:3001/cart');
-      const favoritesResponse = await axios.get('http://localhost:3001/favorites');
+      try {
+        const [ itemsResponse, cartResponse, favoritesResponse ] = await Promise.all([
+          axios.get('http://localhost:3001/items'),
+          axios.get('http://localhost:3001/cart'), 
+          axios.get('http://localhost:3001/favorites')
+        ]);
 
-      setIsLoading(false);
+        setIsLoading(false);
 
-      setCartItems(cartResponse.data);
-      setFavorites(favoritesResponse.data);
-      setItems(itemsResponse.data);
+        setCartItems(cartResponse.data);
+        setFavorites(favoritesResponse.data);
+        setItems(itemsResponse.data);
+      } catch (error) {
+        alert('Ошибка при запросе данных');
+      }
     }
 
     fetchData();
   }, []);
 
-  const onAddToCart = (obj) => {
+  const onAddToCart = async (obj) => {
     try {
       if (cartItems.find((item) => Number(item.id) === Number(obj.id))) {
-        axios.delete(`http://localhost:3001/cart/${obj.id}`);
         setCartItems(prev => prev.filter(item => Number(item.id) !== Number(obj.id)));
+        await axios.delete(`http://localhost:3001/cart/${obj.id}`);
       } else {
-        axios.post('http://localhost:3001/cart', obj);
         setCartItems(prev => [...prev, obj]);
+        await axios.post('http://localhost:3001/cart', obj);
       }
     } catch (error) {
       console('Не удалось добавить в корзину');
+      console.log(error);
     }
   }
 
   const onRemoveItem = (id) => {
-    axios.delete(`http://localhost:3001/cart/${id}`);
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
+    try {
+      setCartItems((prev) => prev.filter((item) => Number(item.id) !== Number(id)));
+      axios.delete(`http://localhost:3001/cart/${id}`);
+    } catch (error) {
+      console('Не удалось удалить из корзины');
+      console.log(error);
+    }
   }
 
   const onAddToFavorite = async (obj) => {
@@ -56,12 +69,14 @@ function App() {
       if (favorites.find((favObj) => Number(favObj.id) === Number(obj.id))) {
         axios.delete(`http://localhost:3001/favorites/${obj.id}`);
         setFavorites((prev) => prev.filter((item) => Number(item.id) !== Number(obj.id)));
+        
       } else {
         const { data } = await axios.post('http://localhost:3001/favorites/', obj)
         setFavorites((prev) => [...prev, data]);
       }
     } catch (error) {
       alert('Не удалось добавить в фавориты');
+      console.log(error);
     }
   }
 
@@ -74,10 +89,20 @@ function App() {
   }
 
   return (
-    <AppContext.Provider value={{ items, cartItems, favorites, isItemAdded, onAddToFavorite, setCartOpened, setCartItems }}>
+    <AppContext.Provider 
+      value={{ 
+        items, 
+        cartItems, 
+        favorites, 
+        isItemAdded, 
+        onAddToFavorite, 
+        onAddToCart, 
+        setCartOpened, 
+        setCartItems 
+      }}>
       <div className="wrapper clear">
         
-        {cartOpened && <Drawer items={cartItems} onCloseCart={() => setCartOpened(false)} onRemove={onRemoveItem} />}
+        <Drawer items={cartItems} onCloseCart={() => setCartOpened(false)} onRemove={onRemoveItem} opened={cartOpened} />
 
         <Header onClickCart={() => setCartOpened(true)} />
 
@@ -106,6 +131,14 @@ function App() {
                 items={favorites} 
                 onAddToFavorite={onAddToFavorite} 
                 onAddToCart={onAddToCart} 
+              />
+            }
+            exact
+          />
+          <Route
+            path="/orders"
+            element={
+              <Orders
               />
             }
             exact
